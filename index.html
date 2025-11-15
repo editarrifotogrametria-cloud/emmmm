@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GNSS.AI · Centro de Control ComNav</title>
+    <meta name="color-scheme" content="dark" />
+    <style>
+        :root {
+            --bg: #03060f;
+            --panel: rgba(8, 14, 28, 0.92);
+            --panel-alt: rgba(11, 20, 40, 0.9);
+            --border: rgba(0, 229, 255, 0.35);
+            --border-muted: rgba(255, 255, 255, 0.08);
+            --text: #f5f7ff;
+            --muted: rgba(245, 247, 255, 0.65);
+            --accent: #00e5ff;
+            --accent-2: #07f0a0;
+            --warning: #ffb347;
+            --danger: #ff5f6d;
+            --success: #5dffb1;
+            --gradient: radial-gradient(circle at 15% -10%, rgba(0, 229, 255, 0.25), transparent 55%),
+                radial-gradient(circle at 85% 0%, rgba(7, 240, 160, 0.24), transparent 40%), var(--bg);
+            font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--gradient);
+            min-height: 100vh;
+            color: var(--text);
+            padding: 28px clamp(16px, 3vw, 40px);
+        }
+
+        .app-shell {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header.top-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            background: var(--panel);
+            border-radius: 22px;
+            padding: 22px clamp(18px, 3vw, 32px);
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 60px rgba(3, 8, 25, 0.55);
+        }
+
+        .identity h1 {
+            margin: 0;
+            font-size: clamp(1.6rem, 4vw, 2.4rem);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .identity p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            max-width: 520px;
+        }
+
+        nav.quick-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        nav.quick-nav a {
+            text-decoration: none;
+            color: var(--text);
+            border: 1px solid var(--border-muted);
+            border-radius: 999px;
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: border 160ms ease, background 160ms ease;
+        }
+
+        nav.quick-nav a:hover,
+        nav.quick-nav a:focus-visible {
+            border-color: var(--border);
+            background: rgba(0, 229, 255, 0.08);
+            outline: none;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: rgba(0, 229, 255, 0.08);
+            min-width: 200px;
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--danger);
+            box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.18);
+            transition: all 220ms ease;
+        }
+
+        .status-dot.is-online {
+            background: var(--success);
+            box-shadow: 0 0 0 6px rgba(93, 255, 177, 0.25);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border-radius: 14px;
+            border: 1px solid transparent;
+            padding: 10px 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: transform 120ms ease, filter 120ms ease;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #04141f;
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--border-muted);
+            color: var(--text);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        button:not(:disabled):hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 22px;
+            padding: 20px clamp(18px, 3vw, 28px);
+            border: 1px solid var(--border-muted);
+            box-shadow: 0 15px 40px rgba(2, 4, 12, 0.55);
+        }
+
+        .panel h2 {
+            margin: 0 0 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
+        .grid {
+            display: grid;
+            gap: 18px;
+        }
+
+        .grid.cols-3 {
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+
+        .grid.cols-2 {
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        }
+
+        .card {
+            border-radius: 18px;
+            padding: 18px;
+            border: 1px solid var(--border-muted);
+            background: var(--panel-alt);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 130px;
+        }
+
+        .card .label {
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .card .value {
+            font-size: clamp(1.8rem, 4vw, 2.3rem);
+            font-weight: 700;
+        }
+
+        .card .subvalue {
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
+        .badge {
+            align-self: flex-start;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+        }
+
+        .badge.warn {
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        table.metrics {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        table.metrics td {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-muted);
+            font-size: 0.95rem;
+        }
+
+        table.metrics td:first-child {
+            color: var(--muted);
+            width: 45%;
+        }
+
+        .timeline {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 12px;
+        }
+
+        .timeline li {
+            background: var(--panel-alt);
+            border: 1px solid var(--border-muted);
+            border-radius: 18px;
+            padding: 14px;
+            display: grid;
+            gap: 4px;
+        }
+
+        .timeline strong {
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .timeline span {
+            font-weight: 600;
+        }
+
+        .command-deck {
+            display: grid;
+            gap: 16px;
+        }
+
+        .command-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .command-input input {
+            flex: 1;
+            min-width: 240px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.35);
+            padding: 12px;
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .macros {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .macro {
+            border-radius: 16px;
+            border: 1px solid var(--border-muted);
+            padding: 14px;
+            background: var(--panel-alt);
+            display: grid;
+            gap: 8px;
+        }
+
+        .macro strong {
+            color: var(--accent-2);
+        }
+
+        .macro small {
+            color: var(--muted);
+        }
+
+        .macro button {
+            justify-self: flex-start;
+            padding: 6px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(7, 240, 160, 0.08);
+            color: var(--text);
+        }
+
+        .log {
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 18px;
+            border: 1px solid var(--border-muted);
+            padding: 16px;
+            max-height: 260px;
+            overflow: auto;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin: 0 0 6px;
+        }
+
+        .foot-note {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 18px;
+            }
+
+            header.top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .command-input input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="top-bar">
+            <div class="identity">
+                <p>GNSS.AI · Pi Zero Link</p>
+                <h1>Centro de Control Diferencial</h1>
+                <p>
+                    Monitoreo tipo Emlid para receptor ComNav: métricas GNSS en vivo, control del flujo RTCM,
+                    comandos instantáneos y bitácora operativa en un solo panel.
+                </p>
+            </div>
+            <div class="actions">
+                <div class="status-pill" id="statusPill">
+                    <span class="status-dot" id="linkDot"></span>
+                    <div>
+                        <div id="linkState">Sin enlace</div>
+                        <small id="uptime">Uptime --</small>
+                    </div>
+                </div>
+                <button class="secondary" id="refreshBtn" type="button">Forzar actualización</button>
+                <button class="primary" id="openManual" type="button">Manual ComNav</button>
+            </div>
+            <nav class="quick-nav" aria-label="Secciones">
+                <a href="#overview">General</a>
+                <a href="#gnss">GNSS</a>
+                <a href="#corrections">Correcciones</a>
+                <a href="#ai">ML</a>
+                <a href="#commands">Comandos</a>
+            </nav>
+        </header>
+
+        <section class="panel" id="overview">
+            <h2>Estado general</h2>
+            <div class="grid cols-3">
+                <article class="card">
+                    <span class="label">Posición GNSS</span>
+                    <span class="value" id="coordValue">-- · --</span>
+                    <span class="subvalue" id="altitudeValue">Altura --</span>
+                    <span class="subvalue" id="utmValue">UTM/Proj --</span>
+                </article>
+                <article class="card">
+                    <span class="label">Calidad de solución</span>
+                    <span class="value"><span id="qualityValue">--</span> <small id="qualityLabel"></small></span>
+                    <span class="badge" id="rtkBadge">RTK · sin datos</span>
+                    <span class="subvalue">HDOP <strong id="hdopValue">--</strong> · Precisión <strong id="accuracyValue">--</strong></span>
+                </article>
+                <article class="card">
+                    <span class="label">Telemetría de enlace</span>
+                    <span class="value"><span id="satValue">--</span> <small>satélites</small></span>
+                    <span class="subvalue">NMEA <strong id="nmeaValue">--</strong> · RTCM <strong id="rtcmValue">--</strong></span>
+                    <span class="subvalue">Cambios de formato <strong id="switchValue">--</strong></span>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" id="gnss">
+            <h2>GNSS y operación</h2>
+            <div class="grid cols-2">
+                <div>
+                    <table class="metrics" aria-label="Resumen GNSS">
+                        <tbody>
+                            <tr>
+                                <td>Modo transmisión</td>
+                                <td id="formatValue">--</td>
+                            </tr>
+                            <tr>
+                                <td>Estado RTK</td>
+                                <td id="rtkState">--</td>
+                            </tr>
+                            <tr>
+                                <td>Satélites LOS</td>
+                                <td id="losValue">--</td>
+                            </tr>
+                            <tr>
+                                <td>Satélites multipath</td>
+                                <td id="multipathValue">--</td>
+                            </tr>
+                            <tr>
+                                <td>Satélites NLOS</td>
+                                <td id="nlosValue">--</td>
+                            </tr>
+                            <tr>
+                                <td>Latencia / Edad</td>
+                                <td id="latencyValue">--</td>
+                            </tr>
+                            <tr>
+                                <td>Último paquete</td>
+                                <td id="lastUpdate">--</td>
+                            </tr>
+                            <tr>
+                                <td>Hace</td>
+                                <td id="lastUpdateAgo">--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <table class="metrics" aria-label="Indicadores operativos">
+                        <tbody>
+                            <tr>
+                                <td>NMEA enviados</td>
+                                <td id="nmeaDetail">--</td>
+                            </tr>
+                            <tr>
+                                <td>RTCM enviados</td>
+                                <td id="rtcmDetail">--</td>
+                            </tr>
+                            <tr>
+                                <td>Cambios de formato</td>
+                                <td id="switchDetail">--</td>
+                            </tr>
+                            <tr>
+                                <td>Correcciones ML</td>
+                                <td id="mlCorrections">--</td>
+                            </tr>
+                            <tr>
+                                <td>Confianza ML</td>
+                                <td id="mlConfidence">--</td>
+                            </tr>
+                            <tr>
+                                <td>Evento reciente</td>
+                                <td id="lastEvent">Sin eventos</td>
+                            </tr>
+                            <tr>
+                                <td>Estado enlace</td>
+                                <td id="linkMode">Sin datos</td>
+                            </tr>
+                            <tr>
+                                <td>Reloj local</td>
+                                <td id="localClock">--:--:--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" id="corrections">
+            <h2>Correcciones y espectro</h2>
+            <div class="grid cols-3">
+                <article class="card">
+                    <span class="label">RTCM</span>
+                    <span class="value" id="rtcmStream">--</span>
+                    <span class="subvalue">Flujo de correcciones activo</span>
+                </article>
+                <article class="card">
+                    <span class="label">NMEA</span>
+                    <span class="value" id="nmeaStream">--</span>
+                    <span class="subvalue">Salidas hacia cliente</span>
+                </article>
+                <article class="card">
+                    <span class="label">Cambios de formato</span>
+                    <span class="value" id="switchStream">--</span>
+                    <span class="subvalue">Conmutaciones recientes</span>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" id="ai">
+            <h2>Supervisión ML y eventos</h2>
+            <div class="grid cols-2">
+                <div>
+                    <p class="subvalue" style="margin-top:0;color:var(--muted);">
+                        Seguimiento de confianza y acciones sugeridas por el modelo GNSS.AI.
+                    </p>
+                    <table class="metrics" aria-label="Indicadores de IA">
+                        <tbody>
+                            <tr>
+                                <td>Confianza promedio</td>
+                                <td id="mlConfidenceDetail">--</td>
+                            </tr>
+                            <tr>
+                                <td>Correcciones aplicadas</td>
+                                <td id="mlCorrectionsDetail">--</td>
+                            </tr>
+                            <tr>
+                                <td>Última recomendación</td>
+                                <td id="mlRecommendation">Sin datos</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <ul class="timeline" id="eventLog">
+                        <li data-placeholder="true">
+                            <strong>Esperando datos</strong>
+                            <span>No hay eventos registrados aún.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" id="commands">
+            <h2>Consola ComNav</h2>
+            <div class="command-deck">
+                <div class="command-input">
+                    <input type="text" id="commandInput" placeholder="Escribe un comando EXACTO (ej. LOG COM1 GPGGA ONCE)" />
+                    <button class="primary" id="sendCommand" type="button">Enviar</button>
+                </div>
+                <p class="subvalue" style="margin:0;">Los comandos siguen la sintaxis del manual OEM ComNav. Los más usados están disponibles abajo.</p>
+                <div class="macros" aria-label="Macros ComNav">
+                    <article class="macro">
+                        <strong>Base RTK</strong>
+                        <small>Configura salida RTCM3 para estación base.</small>
+                        <button data-command="UNLOGALL\nLOG RTCM3 COM1 1" type="button">Ejecutar</button>
+                    </article>
+                    <article class="macro">
+                        <strong>Rover + NMEA</strong>
+                        <small>Activa soluciones GPGGA y GPRMC cada segundo.</small>
+                        <button data-command="UNLOGALL\nLOG GPGGA ONTIME 1\nLOG GPRMC ONTIME 1" type="button">Ejecutar</button>
+                    </article>
+                    <article class="macro">
+                        <strong>Modo PPK</strong>
+                        <small>Registra archivos binarios para post-proceso.</small>
+                        <button data-command="UNLOGALL\nLOG BESTPOSB ONTIME 0.2\nLOG BESTVELB ONTIME 0.2" type="button">Ejecutar</button>
+                    </article>
+                    <article class="macro">
+                        <strong>Diagnóstico RF</strong>
+                        <small>Consulta espectro y estado de antena.</small>
+                        <button data-command="LOG SATVISB ONCE\nLOG ANTSTATUSB ONCE" type="button">Ejecutar</button>
+                    </article>
+                </div>
+                <div>
+                    <h3 style="margin-bottom:8px;">Bitácora de comandos</h3>
+                    <div class="log" id="commandLog">Esperando comandos...</div>
+                </div>
+            </div>
+        </section>
+
+        <p class="foot-note">GNSS.AI · Dashboard inspirado en Emlid · WebSocket + REST redundante</p>
+    </div>
+
+    {% if socketio_enabled %}
+    <script src="/socket.io/socket.io.js"></script>
+    {% endif %}
+    <script>
+        const WS_ENABLED = {{ 'true' if socketio_enabled else 'false' }};
+        const dom = {
+            coordValue: document.getElementById('coordValue'),
+            altitudeValue: document.getElementById('altitudeValue'),
+            utmValue: document.getElementById('utmValue'),
+            lastUpdate: document.getElementById('lastUpdate'),
+            lastUpdateAgo: document.getElementById('lastUpdateAgo'),
+            qualityValue: document.getElementById('qualityValue'),
+            qualityLabel: document.getElementById('qualityLabel'),
+            hdopValue: document.getElementById('hdopValue'),
+            accuracyValue: document.getElementById('accuracyValue'),
+            rtkBadge: document.getElementById('rtkBadge'),
+            satValue: document.getElementById('satValue'),
+            nmeaValue: document.getElementById('nmeaValue'),
+            rtcmValue: document.getElementById('rtcmValue'),
+            switchValue: document.getElementById('switchValue'),
+            formatValue: document.getElementById('formatValue'),
+            rtkState: document.getElementById('rtkState'),
+            losValue: document.getElementById('losValue'),
+            multipathValue: document.getElementById('multipathValue'),
+            nlosValue: document.getElementById('nlosValue'),
+            mlCorrections: document.getElementById('mlCorrections'),
+            mlCorrectionsDetail: document.getElementById('mlCorrectionsDetail'),
+            mlConfidence: document.getElementById('mlConfidence'),
+            mlConfidenceDetail: document.getElementById('mlConfidenceDetail'),
+            latencyValue: document.getElementById('latencyValue'),
+            eventLog: document.getElementById('eventLog'),
+            linkState: document.getElementById('linkState'),
+            uptime: document.getElementById('uptime'),
+            linkDot: document.getElementById('linkDot'),
+            localClock: document.getElementById('localClock'),
+            refreshBtn: document.getElementById('refreshBtn'),
+            nmeaDetail: document.getElementById('nmeaDetail'),
+            rtcmDetail: document.getElementById('rtcmDetail'),
+            switchDetail: document.getElementById('switchDetail'),
+            lastEvent: document.getElementById('lastEvent'),
+            linkMode: document.getElementById('linkMode'),
+            rtcmStream: document.getElementById('rtcmStream'),
+            nmeaStream: document.getElementById('nmeaStream'),
+            switchStream: document.getElementById('switchStream'),
+            mlRecommendation: document.getElementById('mlRecommendation'),
+            commandInput: document.getElementById('commandInput'),
+            sendCommand: document.getElementById('sendCommand'),
+            commandLog: document.getElementById('commandLog'),
+            commandButtons: document.querySelectorAll('.macro button'),
+            rtkBadgeEl: document.getElementById('rtkBadge'),
+            openManual: document.getElementById('openManual')
+        };
+
+        const wsEnabled = Boolean(WS_ENABLED);
+        let wsConnected = false;
+        let socket = null;
+        const state = {
+            lastStats: null,
+            lastDataAt: null,
+            lastRtk: null,
+            lastFormat: null,
+            lastSwitchCount: null,
+            lastNmea: null,
+            lastEvent: 'Sin eventos',
+        };
+
+        const qualityLabels = {
+            0: 'Sin fix',
+            1: 'Autónomo',
+            2: 'DGPS',
+            3: 'PPS',
+            4: 'RTK Fijo',
+            5: 'RTK Flotante',
+            6: 'Estimación',
+        };
+
+        function formatNumber(value, digits = 3) {
+            if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+            return value.toFixed(digits);
+        }
+
+        function formatCoord(lat, lon) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '-- · --';
+            return `${lat.toFixed(6)} · ${lon.toFixed(6)}`;
+        }
+
+        function formatAlt(alt) {
+            if (!Number.isFinite(alt)) return 'Altura --';
+            return `Altura ${alt.toFixed(2)} m`;
+        }
+
+        function secondsToHuman(seconds) {
+            if (!Number.isFinite(seconds)) return '--';
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        function relativeTime(date) {
+            if (!date) return '--';
+            const delta = Date.now() - date.getTime();
+            if (delta < 2000) return 'Justo ahora';
+            if (delta < 60000) return `Hace ${Math.round(delta / 1000)} s`;
+            if (delta < 3600000) return `Hace ${Math.round(delta / 60000)} min`;
+            return `Hace ${Math.round(delta / 3600000)} h`;
+        }
+
+        function pushEvent(title, message) {
+            const entry = document.createElement('li');
+            const strong = document.createElement('strong');
+            strong.textContent = title;
+            const span = document.createElement('span');
+            span.textContent = message;
+            entry.appendChild(strong);
+            entry.appendChild(span);
+            dom.eventLog.prepend(entry);
+            while (dom.eventLog.children.length > 5) {
+                dom.eventLog.lastChild.remove();
+            }
+            const placeholder = dom.eventLog.querySelector('[data-placeholder]');
+            if (placeholder) placeholder.remove();
+            state.lastEvent = `${title}: ${message}`;
+            dom.lastEvent.textContent = state.lastEvent;
+        }
+
+        function updateConnection(connected, reason = '') {
+            wsConnected = connected;
+            dom.linkDot.classList.toggle('is-online', connected);
+            dom.linkState.textContent = connected ? 'Enlace en tiempo real' : 'Modo degradado';
+            dom.linkMode.textContent = reason || (connected ? 'WebSocket' : 'Polling REST');
+        }
+
+        function detectEvents(stats) {
+            if (!stats) return;
+            if (state.lastRtk && stats.rtk_status && state.lastRtk !== stats.rtk_status) {
+                pushEvent('Estado RTK', `${state.lastRtk} → ${stats.rtk_status}`);
+            }
+            if (state.lastFormat && stats.format && state.lastFormat !== stats.format) {
+                pushEvent('Formato', `${state.lastFormat} → ${stats.format}`);
+            }
+            if (Number.isFinite(state.lastSwitchCount) && Number.isFinite(stats.format_switches) && stats.format_switches > state.lastSwitchCount) {
+                pushEvent('Switch formato', `+${stats.format_switches - state.lastSwitchCount}`);
+            }
+            if (Number.isFinite(state.lastNmea) && Number.isFinite(stats.nmea_sent) && stats.nmea_sent > state.lastNmea) {
+                pushEvent('NMEA', `+${stats.nmea_sent - state.lastNmea} tramas`);
+            }
+
+            state.lastRtk = stats.rtk_status;
+            state.lastFormat = stats.format;
+            state.lastSwitchCount = stats.format_switches;
+            state.lastNmea = stats.nmea_sent;
+        }
+
+        function applyStats(data) {
+            if (!data) return;
+            const firstPacket = !state.lastStats;
+            state.lastStats = data;
+            state.lastDataAt = new Date();
+
+            dom.coordValue.textContent = formatCoord(data.position?.lat, data.position?.lon);
+            dom.altitudeValue.textContent = formatAlt(data.position?.alt);
+            dom.utmValue.textContent = data.utm || 'UTM/Proj --';
+
+            dom.lastUpdate.textContent = new Date(data.last_update || Date.now()).toLocaleString('es-ES', { hour12: false });
+            dom.lastUpdateAgo.textContent = 'Justo ahora';
+
+            dom.qualityValue.textContent = data.quality ?? '--';
+            dom.qualityLabel.textContent = qualityLabels[data.quality] || '';
+            dom.hdopValue.textContent = formatNumber(data.hdop, 2);
+            const accuracy = Number.isFinite(data.estimated_accuracy)
+                ? `${data.estimated_accuracy.toFixed(2)} m`
+                : data.hdop ? `${(data.hdop * 0.8).toFixed(2)} m (HDOP)` : '--';
+            dom.accuracyValue.textContent = accuracy;
+
+            dom.satValue.textContent = data.satellites ?? '--';
+            dom.nmeaValue.textContent = data.nmea_sent ?? '--';
+            dom.rtcmValue.textContent = data.rtcm_sent ?? '--';
+            dom.switchValue.textContent = data.format_switches ?? '--';
+            dom.nmeaDetail.textContent = data.nmea_sent ?? '--';
+            dom.rtcmDetail.textContent = data.rtcm_sent ?? '--';
+            dom.switchDetail.textContent = data.format_switches ?? '--';
+            dom.rtcmStream.textContent = data.rtcm_sent ?? '--';
+            dom.nmeaStream.textContent = data.nmea_sent ?? '--';
+            dom.switchStream.textContent = data.format_switches ?? '--';
+
+            dom.formatValue.textContent = data.format || '--';
+            dom.rtkState.textContent = data.rtk_status || '--';
+            dom.losValue.textContent = data.los_sats ?? '--';
+            dom.multipathValue.textContent = data.multipath_sats ?? '--';
+            dom.nlosValue.textContent = data.nlos_sats ?? '--';
+
+            const latency = Number.isFinite(data.latency) ? data.latency : Number.isFinite(data.age) ? data.age : null;
+            dom.latencyValue.textContent = Number.isFinite(latency) ? `${latency.toFixed(1)} s` : '--';
+
+            dom.mlCorrections.textContent = data.ml_corrections ?? '--';
+            dom.mlCorrectionsDetail.textContent = data.ml_corrections ?? '--';
+            const confidence = Number.isFinite(data.avg_confidence)
+                ? `${data.avg_confidence.toFixed(1)} %`
+                : '--';
+            dom.mlConfidence.textContent = confidence;
+            dom.mlConfidenceDetail.textContent = confidence;
+            dom.mlRecommendation.textContent = data.ml_recommendation || 'Sin datos';
+
+            dom.rtkBadge.textContent = `RTK · ${data.rtk_status || 'sin datos'}`;
+            dom.rtkBadge.classList.toggle('warn', data.rtk_status && data.rtk_status !== 'FIXED');
+
+            dom.uptime.textContent = `Uptime ${secondsToHuman(data.uptime)}`;
+
+            if (firstPacket) {
+                pushEvent('Datos', 'Primer paquete recibido');
+            }
+            detectEvents(data);
+        }
+
+        function refreshClock() {
+            dom.localClock.textContent = new Date().toLocaleString('es-ES', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                day: '2-digit',
+                month: 'short',
+            });
+            if (state.lastDataAt) {
+                dom.lastUpdateAgo.textContent = relativeTime(state.lastDataAt);
+            }
+        }
+
+        async function pollStats(manual = false) {
+            try {
+                if (manual) {
+                    dom.refreshBtn.disabled = true;
+                }
+                const response = await fetch('/api/stats', { cache: 'no-store' });
+                if (!response.ok) return;
+                const payload = await response.json();
+                applyStats(payload);
+                if (!wsConnected) {
+                    updateConnection(false, 'Polling REST activo');
+                }
+            } catch (_) {
+                // ignore
+            } finally {
+                if (manual) {
+                    setTimeout(() => (dom.refreshBtn.disabled = false), 600);
+                }
+            }
+        }
+
+        async function sendCommand(command) {
+            const trimmed = (command || '').trim();
+            if (!trimmed) return;
+            dom.sendCommand.disabled = true;
+            try {
+                const response = await fetch('/api/command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: trimmed })
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    appendCommandLog(`✔ ${result.timestamp} → ${result.command}`);
+                    pushEvent('Comando', trimmed);
+                } else {
+                    appendCommandLog(`✖ Error enviando comando (${response.status})`);
+                }
+            } catch (err) {
+                appendCommandLog('✖ Error de red enviando comando');
+            } finally {
+                dom.sendCommand.disabled = false;
+                dom.commandInput.value = '';
+            }
+        }
+
+        function appendCommandLog(line) {
+            if (dom.commandLog.textContent.includes('Esperando')) {
+                dom.commandLog.textContent = '';
+            }
+            const entry = document.createElement('p');
+            entry.className = 'log-entry';
+            entry.textContent = line;
+            dom.commandLog.prepend(entry);
+            while (dom.commandLog.children.length > 20) {
+                dom.commandLog.lastChild.remove();
+            }
+        }
+
+        dom.refreshBtn.addEventListener('click', () => pollStats(true));
+        dom.sendCommand.addEventListener('click', () => sendCommand(dom.commandInput.value));
+        dom.commandInput.addEventListener('keydown', (evt) => {
+            if (evt.key === 'Enter') {
+                sendCommand(dom.commandInput.value);
+            }
+        });
+        dom.commandButtons.forEach((btn) => {
+            btn.addEventListener('click', () => sendCommand(btn.dataset.command));
+        });
+        dom.openManual.addEventListener('click', () => {
+            window.open('https://github.com/editarrifotogrametria-cloud/nuevo-edi/blob/main/ComNav%20OEM%20Board%20Reference%20Manual_V1.8%20(1).docx', '_blank');
+        });
+
+        const clientHasSocketLib = typeof io === 'function';
+        if (!wsEnabled) {
+            updateConnection(false, 'Modo REST continuo');
+            pushEvent('WebSocket', 'Modo solo REST (instala flask-socketio para habilitar eventos en vivo)');
+        } else if (!clientHasSocketLib) {
+            updateConnection(false, 'Cliente Socket.IO ausente');
+            pushEvent('WebSocket', 'No se pudo cargar /socket.io/socket.io.js');
+        } else {
+            socket = io('/ws', { transports: ['websocket', 'polling'] });
+            socket.on('connect', () => updateConnection(true, 'Canal WebSocket activo'));
+            socket.on('disconnect', () => updateConnection(false, 'Reintentando enlace…'));
+            socket.on('stats', (data) => applyStats(data));
+            socket.on('uptime', (data) => {
+                if (data && Number.isFinite(data.ts)) {
+                    dom.uptime.textContent = `Uptime ${secondsToHuman(data.ts)}`;
+                }
+            });
+        }
+
+        const pollInterval = (!wsEnabled || !clientHasSocketLib) ? 2500 : 5000;
+        setInterval(() => {
+            if (!socket || !socket.connected) {
+                pollStats();
+            }
+        }, pollInterval);
+
+        setInterval(refreshClock, 1000);
+        refreshClock();
+        pollStats();
+    </script>
+</body>
+</html>
